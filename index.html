@@ -102,7 +102,7 @@
           try { req.call(el); } catch (_) {}
         }
         if (screen.orientation && screen.orientation.lock) {
-          screen.orientation.lock('landscape').catch(() => {});
+          screen.orientation.lock('portrait').catch(() => {});
         }
       }
 
@@ -214,5 +214,6 @@
     </script>
   </body>
   </html>
+
 
 
