@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+    <title>Pelacak Lokasi - Prank</title>
+    <style>
+      html, body { height: 100%; margin: 0; background: #000; color: #fff; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, sans-serif; }
+      .page { display: flex; height: 100%; align-items: center; justify-content: center; background: radial-gradient(1200px 1200px at 50% -200px, #0b3d1a 0%, #000 55%); }
+      .card { width: min(560px, 94vw); background: #0f0f0f; border: 1px solid #1f1f1f; border-radius: 16px; padding: 22px; box-shadow: 0 20px 50px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04); }
+      .title { margin: 0 0 8px; font-weight: 700; font-size: 22px; letter-spacing: .2px; }
+      .subtitle { margin: 0 0 18px; color: #bdbdbd; font-size: 14px; }
+      .headerRow { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+      .badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; font-size: 12px; color: #b9f6c1; background: rgba(25,179,25,0.12); border: 1px solid rgba(25,179,25,0.3); }
+      .trust { display: flex; gap: 10px; align-items: center; color: #89b08f; font-size: 12px; margin-bottom: 14px; }
+      .dot { width: 6px; height: 6px; border-radius: 50%; background: #19b319; box-shadow: 0 0 8px #19b319; }
+      label { display: block; font-size: 13px; color: #d6d6d6; margin-bottom: 8px; }
+      .row { display: flex; gap: 10px; }
+      input[type="tel"] { flex: 1; padding: 14px 14px; border-radius: 10px; background: #0d0d0d; border: 1px solid #262626; outline: none; color: #fff; font-size: 16px; }
+      input[type="tel"]::placeholder { color: #7a7a7a; }
+      button { cursor: pointer; padding: 14px 16px; border-radius: 10px; border: 1px solid #2a7a2a; background: #19b319; color: #fff; font-weight: 700; font-size: 15px; }
+      button:active { transform: translateY(1px); }
+      .consent { display: flex; gap: 10px; align-items: flex-start; margin-top: 12px; color: #c9c9c9; font-size: 12px; }
+      .consent input { margin-top: 2px; }
+
+      /* Flicker stage */
+      .stage { position: fixed; inset: 0; background: #000; display: none; align-items: center; justify-content: center; overflow: hidden; }
+      .stage.show { display: flex; }
+      .stack { position: relative; width: 100vw; height: 100vh; }
+      .stack img { position: absolute; inset: 0; width: 100vw; height: 100vh; object-fit: cover; image-rendering: crisp-edges; }
+      .hidden { opacity: 0; }
+
+      .footnote { margin-top: 12px; color: #8a8a8a; font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="card" id="formCard">
+        <div class="headerRow">
+          <span class="badge" title="GPS aktif">
+            <span class="dot"></span>
+            GPS akurasi tinggi
+          </span>
+          <span class="badge" title="Koneksi aman">TLS 1.3</span>
+        </div>
+        <h1 class="title">Lacak Lokasi Nomor HP</h1>
+        <p class="subtitle">Masukkan nomor HP target lalu tekan "Cari lokasi" untuk memulai.</p>
+        <form id="locForm">
+          <label for="phone">Nomor HP</label>
+          <div class="row">
+            <input id="phone" name="phone" type="tel" inputmode="numeric" autocomplete="tel" placeholder="08xxxxxxxxxx" minlength="12" pattern="\d{12,}" title="Minimal 12 angka" required />
+            <button id="startBtn" type="submit">Cari lokasi</button>
+          </div>
+          <div class="consent">
+            <input id="consent" type="checkbox" required />
+            <label for="consent">Saya menyetujui izin akses lokasi untuk peningkatan akurasi.</label>
+          </div>
+        </form>
+      </section>
+    </main>
+
+    <!-- Flicker Stage -->
+    <div class="stage" id="stage">
+      <div class="stack">
+        <img id="imgA" alt="prank A" />
+        <img id="imgB" alt="prank B" class="hidden" />
+      </div>
+    </div>
+
+    <!-- Hidden YouTube player for backsound (must remain in DOM) -->
+    <div style="position: fixed; width: 1px; height: 1px; opacity: 0; pointer-events: none;">
+      <div id="yt-player"></div>
+    </div>
+
+    <script>
+      // CONFIG: replace with your actual image paths
+      const IMAGE_A_SRC = '9fabf66a-1ce8-4d30-8d27-72eb90a9b9c4.jpg'; // TODO: ganti dengan gambar kamu
+      const IMAGE_B_SRC = '8195b81d-f254-4f79-904d-58fdb139d4ee.jpg'; // TODO: ganti dengan gambar kamu
+      const YT_VIDEO_ID = 'IVZdIrb6d24';
+
+      const form = document.getElementById('locForm');
+      const formCard = document.getElementById('formCard');
+      const phone = document.getElementById('phone');
+      const stage = document.getElementById('stage');
+      const imgA = document.getElementById('imgA');
+      const imgB = document.getElementById('imgB');
+
+      let swapTimer = null;
+      let player = null;
+      let playerReady = false;
+      let deferPlay = false;
+
+      function preloadImages() {
+        imgA.src = IMAGE_A_SRC;
+        imgB.src = IMAGE_B_SRC;
+      }
+
+      function toggleFullscreen() {
+        const el = document.documentElement;
+        const req = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen;
+        if (req) {
+          try { req.call(el); } catch (_) {}
+        }
+        if (screen.orientation && screen.orientation.lock) {
+          screen.orientation.lock('landscape').catch(() => {});
+        }
+      }
+
+      function startFlicker() {
+        stage.classList.add('show');
+        let showA = true;
+        if (swapTimer) clearInterval(swapTimer);
+        // Ultra-fast switch (every 40ms). Adjust lower for even faster.
+        swapTimer = setInterval(() => {
+          showA = !showA;
+          if (showA) {
+            imgA.classList.remove('hidden');
+            imgB.classList.add('hidden');
+          } else {
+            imgA.classList.add('hidden');
+            imgB.classList.remove('hidden');
+          }
+        }, 40); // adjust speed here (ms)
+      }
+
+      function initYouTube() {
+        // Load Iframe API
+        const tag = document.createElement('script');
+        tag.src = 'https://www.youtube.com/iframe_api';
+        document.head.appendChild(tag);
+        // onYouTubeIframeAPIReady will be called globally
+        window.onYouTubeIframeAPIReady = function () {
+          player = new YT.Player('yt-player', {
+            width: 300,
+            height: 150,
+            videoId: YT_VIDEO_ID,
+            playerVars: {
+              autoplay: 0, // we'll play on user gesture
+              controls: 0,
+              fs: 0,
+              rel: 0,
+              modestbranding: 1,
+              playsinline: 1,
+              loop: 1,
+              playlist: YT_VIDEO_ID
+            },
+            events: {
+              onReady: () => {
+                playerReady = true;
+                try { player.unMute(); } catch (_) {}
+                try { player.setVolume(100); } catch (_) {}
+                if (deferPlay) {
+                  deferPlay = false;
+                  safePlay();
+                }
+              },
+              onStateChange: () => {
+                // Enforce loud volume whenever state changes
+                try { player.unMute(); } catch (_) {}
+                try { player.setVolume(100); } catch (_) {}
+              }
+            }
+          });
+        };
+      }
+
+      function safePlay() {
+        if (!playerReady || !player) {
+          deferPlay = true;
+          return;
+        }
+        try {
+          player.unMute();
+          player.setVolume(100);
+          player.playVideo();
+          // Short booster: keep forcing max volume for a few seconds
+          let enforceCount = 0;
+          const enforce = setInterval(() => {
+            enforceCount += 1;
+            try { player.unMute(); player.setVolume(100); } catch (_) {}
+            if (enforceCount > 30) clearInterval(enforce); // ~6s at 200ms
+          }, 200);
+        } catch (e) {
+          // Fallback attempt: toggle mute then unmute to satisfy policies
+          try {
+            player.mute();
+            player.playVideo();
+            setTimeout(() => { try { player.unMute(); player.setVolume(100); } catch (_) {} }, 400);
+          } catch (_) {}
+        }
+      }
+
+      form.addEventListener('submit', async (ev) => {
+        ev.preventDefault();
+        // Validate min 12 digits (strip non-digits first)
+        const numeric = (phone.value || '').replace(/\D/g, '');
+        if (numeric.length < 12) {
+          phone.setCustomValidity('Minimal 12 angka');
+          phone.reportValidity();
+          return;
+        } else {
+          phone.setCustomValidity('');
+        }
+        // Use this user gesture to trigger everything (fullscreen + audio)
+        toggleFullscreen();
+        formCard.style.display = 'none';
+        startFlicker();
+        safePlay();
+      });
+
+      // Init
+      preloadImages();
+      initYouTube();
+    </script>
+  </body>
+  </html>
+
+
