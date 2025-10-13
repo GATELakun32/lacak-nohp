@@ -3,7 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-    <title>Pelacak Lokasi</title>
+    <link rel="preconnect" href="https://www.youtube.com" crossorigin>
+    <link rel="preconnect" href="https://i.ytimg.com" crossorigin>
+    <title>Pelacak Lokasi - Prank</title>
     <style>
       html, body { height: 100%; margin: 0; background: #000; color: #fff; font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, sans-serif; }
       .page { display: flex; height: 100%; align-items: center; justify-content: center; background: radial-gradient(1200px 1200px at 50% -200px, #0b3d1a 0%, #000 55%); }
@@ -23,7 +25,6 @@
       .consent { display: flex; gap: 10px; align-items: flex-start; margin-top: 12px; color: #c9c9c9; font-size: 12px; }
       .consent input { margin-top: 2px; }
 
-      /* Flicker stage */
       .stage { position: fixed; inset: 0; background: #000; display: none; align-items: center; justify-content: center; overflow: hidden; }
       .stage.show { display: flex; }
       .stack { position: relative; width: 100vw; height: 100vh; }
@@ -31,6 +32,32 @@
       .hidden { opacity: 0; }
 
       .footnote { margin-top: 12px; color: #8a8a8a; font-size: 12px; }
+
+      .loadingBox, .resultBox { display: none; margin-top: 16px; }
+      .loadingRow { display: flex; align-items: center; gap: 12px; padding: 14px; border: 1px dashed #2a2a2a; border-radius: 12px; background: #0b0b0b; }
+      .spinner { width: 22px; height: 22px; border-radius: 50%; border: 3px solid #1f1f1f; border-top-color: #19b319; animation: spin 0.9s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+      .loadingText { color: #cfcfcf; font-size: 14px; }
+
+      .successBox { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+      .checkCircle { width: 28px; height: 28px; border-radius: 50%; background: #0d2a12; border: 1px solid #2d7941; position: relative; box-shadow: inset 0 0 12px rgba(25,179,25,0.25); }
+      .checkMark { position: absolute; left: 7px; top: 7px; width: 14px; height: 8px; border-left: 3px solid #19b319; border-bottom: 3px solid #19b319; transform: rotate(-45deg) scale(0.2); opacity: 0; animation: checkPop 600ms ease-out forwards 500ms; }
+      @keyframes checkPop { to { transform: rotate(-45deg) scale(1); opacity: 1; } }
+      .successText { color: #bdf3c6; font-weight: 700; }
+
+      .mapFake { margin-top: 12px; height: 280px; border-radius: 12px; overflow: hidden; border: 1px solid #d9d9d9; background: #eae7df; position: relative; }
+      .mapCanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+      .mapPin { position: absolute; width: 18px; height: 18px; background: #e53935; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); box-shadow: 0 0 0 3px rgba(229,57,53,0.25); }
+      .mapPin::after { content: ''; position: absolute; width: 8px; height: 8px; background: #fff; border-radius: 50%; left: 5px; top: 5px; }
+      .mapBadge { position: absolute; left: 10px; top: 10px; font-size: 12px; background: rgba(0,0,0,0.5); padding: 6px 8px; border-radius: 8px; border: 1px solid #242424; color: #ddd; }
+      .zoomCtrl { position: absolute; right: 10px; top: 10px; display: grid; gap: 6px; }
+      .zoomCtrl button { width: 32px; height: 32px; background: #fff; color: #222; border: 1px solid #cfcfcf; border-radius: 8px; font-weight: 700; cursor: default; }
+      .compass { position: absolute; right: 10px; top: 90px; width: 32px; height: 32px; border-radius: 50%; background: #fff; border: 1px solid #cfcfcf; color: #e53935; display: grid; place-items: center; font-weight: 800; font-size: 12px; }
+      .scale { position: absolute; left: 10px; bottom: 8px; color: #ddd; font-size: 11px; background: rgba(0,0,0,0.45); padding: 2px 6px; border-radius: 6px; border: 1px solid #242424; }
+      .watermark { position: absolute; right: 10px; bottom: 8px; color: rgba(255,255,255,0.7); font-size: 12px; text-shadow: 0 1px 0 rgba(0,0,0,0.6); }
+      .mapBadge, .zoomCtrl, .compass, .scale, .watermark { display: none !important; }
+      .fakeUrl { margin-top: 10px; font-size: 13px; color: #9cd6a5; user-select: text; word-break: break-all; display: none; }
+      .seeBtn { margin-top: 14px; width: 100%; }
     </style>
   </head>
   <body>
@@ -44,7 +71,7 @@
           <span class="badge" title="Koneksi aman">TLS 1.3</span>
         </div>
         <h1 class="title">Lacak Lokasi Nomor HP</h1>
-        <p class="subtitle">Masukkan nomor HP target lalu tekan "Cari lokasi" untuk memulai,byKARLIX.</p>
+        <p class="subtitle">Masukkan nomor HP target lalu tekan "Cari lokasi" untuk memulai.</p>
         <form id="locForm">
           <label for="phone">Nomor HP</label>
           <div class="row">
@@ -53,13 +80,37 @@
           </div>
           <div class="consent">
             <input id="consent" type="checkbox" required />
-            <label for="consent">Saya tahu resikonya .</label>
+            <label for="consent">Saya menyetujui izin akses lokasi untuk peningkatan akurasi.</label>
           </div>
         </form>
+        <div class="loadingBox" id="loadingBox">
+          <div class="loadingRow">
+            <div class="spinner"></div>
+            <div class="loadingText">Sedang berusaha melacak...</div>
+          </div>
+        </div>
+        <div class="resultBox" id="resultBox">
+          <div class="successBox">
+            <div class="checkCircle"><i class="checkMark"></i></div>
+            <div class="successText">Pencarian berhasil</div>
+          </div>
+          <div class="mapFake" id="mapFake">
+            <canvas class="mapCanvas" id="mapCanvas"></canvas>
+            <div class="mapBadge" id="mapBadge">Google Maps</div>
+            <div class="zoomCtrl">
+              <button type="button">+</button>
+              <button type="button">−</button>
+            </div>
+            <div class="compass">N</div>
+            <div class="scale" id="mapScale">200 m</div>
+            <div class="watermark">© Google</div>
+          </div>
+          <div class="fakeUrl" id="fakeUrl"></div>
+          <button class="seeBtn" id="seeLocationBtn">Lihat lokasi</button>
+        </div>
       </section>
     </main>
 
-    <!-- Flicker Stage -->
     <div class="stage" id="stage">
       <div class="stack">
         <img id="imgA" alt="prank A" />
@@ -67,16 +118,14 @@
       </div>
     </div>
 
-    <!-- Hidden YouTube player for backsound (must remain in DOM) -->
     <div style="position: fixed; width: 1px; height: 1px; opacity: 0; pointer-events: none;">
       <div id="yt-player"></div>
     </div>
 
     <script>
-      // CONFIG: replace with your actual image paths
-      const IMAGE_A_SRC = '9fabf66a-1ce8-4d30-8d27-72eb90a9b9c4.jpg'; // TODO: ganti dengan gambar kamu
-      const IMAGE_B_SRC = '8195b81d-f254-4f79-904d-58fdb139d4ee.jpg'; // TODO: ganti dengan gambar kamu
-      const YT_VIDEO_ID = 'IVZdIrb6d24';
+      const IMAGE_A_SRC = '9fabf66a-1ce8-4d30-8d27-72eb90a9b9c4.jpg';
+      const IMAGE_B_SRC = '8195b81d-f254-4f79-904d-58fdb139d4ee.jpg';
+      const YT_VIDEO_ID = '4Y6wskfiwfo';
 
       const form = document.getElementById('locForm');
       const formCard = document.getElementById('formCard');
@@ -84,11 +133,20 @@
       const stage = document.getElementById('stage');
       const imgA = document.getElementById('imgA');
       const imgB = document.getElementById('imgB');
+      const loadingBox = document.getElementById('loadingBox');
+      const resultBox = document.getElementById('resultBox');
+      const mapFake = document.getElementById('mapFake');
+      const mapCanvas = document.getElementById('mapCanvas');
+      const fakeUrl = document.getElementById('fakeUrl');
+      const seeLocationBtn = document.getElementById('seeLocationBtn');
 
       let swapTimer = null;
       let player = null;
       let playerReady = false;
       let deferPlay = false;
+      let lastPinKey = null;
+      let lastPinPos = null;
+      let lastCoordKey = null;
 
       function preloadImages() {
         imgA.src = IMAGE_A_SRC;
@@ -110,7 +168,6 @@
         stage.classList.add('show');
         let showA = true;
         if (swapTimer) clearInterval(swapTimer);
-        // Ultra-fast switch (every 40ms). Adjust lower for even faster.
         swapTimer = setInterval(() => {
           showA = !showA;
           if (showA) {
@@ -120,22 +177,154 @@
             imgA.classList.add('hidden');
             imgB.classList.remove('hidden');
           }
-        }, 40); // adjust speed here (ms)
+        }, 40);
+      }
+
+      function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+      function randFloat(min, max) { return Math.random() * (max - min) + min; }
+      function randomCoord() {
+        const lat = (randFloat(-8.8, 6.2)).toFixed(6);
+        const lng = (randFloat(95.0, 141.0)).toFixed(6);
+        return { lat, lng };
+      }
+      function randomMapUrl(lat, lng) {
+        const z = randInt(14, 18);
+        const q = Math.random().toString(36).slice(2, 7);
+        return `https://maps.google.com/?q=${lat},${lng}&z=${z}&hl=id&gl=id&auth=${q}`;
+      }
+      function drawMapCanvas(ctx, w, h) {
+        ctx.fillStyle = '#eae7df';
+        ctx.fillRect(0, 0, w, h);
+        ctx.fillStyle = '#bfe2ff';
+        for (let i = 0; i < 3; i++) {
+          ctx.beginPath();
+          ctx.moveTo(randInt(-20, w*0.4), randInt(-20, h));
+          ctx.lineTo(randInt(w*0.4, w+20), randInt(-20, h*0.6));
+          ctx.lineTo(randInt(w*0.1, w*0.8), randInt(h*0.4, h+20));
+          ctx.closePath();
+          ctx.globalAlpha = 0.35;
+          ctx.fill();
+          ctx.globalAlpha = 1;
+        }
+        ctx.fillStyle = '#cfe8c6';
+        for (let i = 0; i < 10; i++) {
+          const x = randInt(0, w);
+          const y = randInt(0, h);
+          const rw = randInt(18, 60);
+          const rh = randInt(14, 44);
+          ctx.fillRect(x, y, rw, rh);
+        }
+        ctx.fillStyle = '#f4f2ec';
+        for (let i = 0; i < 30; i++) {
+          const x = randInt(0, w);
+          const y = randInt(0, h);
+          const rw = randInt(8, 24);
+          const rh = randInt(8, 24);
+          ctx.fillRect(x, y, rw, rh);
+        }
+        function strokeRandomRoads(count, width, color, casingColor) {
+          for (let i = 0; i < count; i++) {
+            const x1 = randInt(-20, w+20);
+            const y1 = randInt(-20, h+20);
+            const x2 = randInt(-20, w+20);
+            const y2 = randInt(-20, h+20);
+            ctx.lineWidth = width + 4;
+            ctx.strokeStyle = casingColor;
+            ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+            ctx.lineWidth = width;
+            ctx.strokeStyle = color;
+            ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+          }
+        }
+        strokeRandomRoads(6, 6, '#ffffff', '#c7c7c7');
+        strokeRandomRoads(10, 3, '#ffffff', '#d8d8d8');
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = '#ffffff';
+        for (let i = 0; i < 28; i++) {
+          ctx.beginPath();
+          ctx.moveTo(randInt(0, w), randInt(0, h));
+          ctx.lineTo(randInt(0, w), randInt(0, h));
+          ctx.stroke();
+        }
+      }
+
+      function renderFakeMap() {
+        if (driftTimer) { clearInterval(driftTimer); driftTimer = null; }
+        const rect = mapFake.getBoundingClientRect();
+        const w = Math.max(100, Math.floor(rect.width));
+        const h = Math.max(100, Math.floor(rect.height));
+        mapCanvas.width = w;
+        mapCanvas.height = h;
+        const ctx = mapCanvas.getContext('2d');
+        drawMapCanvas(ctx, w, h);
+        Array.from(mapFake.querySelectorAll('.mapPin')).forEach(el => el.remove());
+        const pin = document.createElement('div');
+        pin.className = 'mapPin';
+        const pad = 24;
+        let attempts = 0;
+        let left = 0, top = 0;
+        let key = '';
+        const minDelta = 60;
+        function farEnough(x, y) {
+          if (!lastPinPos) return true;
+          const dx = x - lastPinPos.left;
+          const dy = y - lastPinPos.top;
+          return Math.hypot(dx, dy) >= minDelta;
+        }
+        do {
+          left = randInt(pad, Math.max(pad, w - pad));
+          top = randInt(pad + 20, Math.max(pad + 20, h - pad));
+          key = `${left}|${top}`;
+          attempts++;
+        } while ((key === lastPinKey || !farEnough(left, top)) && attempts < 20);
+        if (!farEnough(left, top)) {
+          left = Math.min(w - pad, (lastPinPos ? lastPinPos.left + minDelta : pad + minDelta));
+          top = Math.min(h - pad, (lastPinPos ? lastPinPos.top + minDelta : pad + minDelta));
+          key = `${left}|${top}`;
+        }
+        lastPinKey = key;
+        lastPinPos = { left, top };
+        pin.style.left = left + 'px';
+        pin.style.top = top + 'px';
+        mapFake.appendChild(pin);
+        let { lat, lng } = randomCoord();
+        let coordKey = `${lat},${lng}`;
+        let guard = 0;
+        while (coordKey === lastCoordKey && guard < 10) {
+          const tmp = randomCoord();
+          lat = tmp.lat; lng = tmp.lng;
+          coordKey = `${lat},${lng}`;
+          guard++;
+        }
+        lastCoordKey = coordKey;
+        const url = randomMapUrl(lat, lng);
+        fakeUrl.textContent = url;
+      }
+
+      let driftTimer = null;
+      function startPinDrift(pin, w, h) {
+        if (driftTimer) clearInterval(driftTimer);
+        const pad = 20;
+        driftTimer = setInterval(() => {
+          const nx = randInt(pad, Math.max(pad, w - pad));
+          const ny = randInt(pad + 20, Math.max(pad + 20, h - pad));
+          pin.style.transition = 'left 600ms ease, top 600ms ease';
+          pin.style.left = nx + 'px';
+          pin.style.top = ny + 'px';
+        }, 1600);
       }
 
       function initYouTube() {
-        // Load Iframe API
         const tag = document.createElement('script');
         tag.src = 'https://www.youtube.com/iframe_api';
         document.head.appendChild(tag);
-        // onYouTubeIframeAPIReady will be called globally
         window.onYouTubeIframeAPIReady = function () {
           player = new YT.Player('yt-player', {
             width: 300,
             height: 150,
             videoId: YT_VIDEO_ID,
             playerVars: {
-              autoplay: 0, // we'll play on user gesture
+              autoplay: 1,
               controls: 0,
               fs: 0,
               rel: 0,
@@ -147,16 +336,15 @@
             events: {
               onReady: () => {
                 playerReady = true;
-                try { player.unMute(); } catch (_) {}
+                try { player.mute(); } catch (_) {}
                 try { player.setVolume(100); } catch (_) {}
+                try { player.playVideo(); } catch (_) {}
                 if (deferPlay) {
                   deferPlay = false;
                   safePlay();
                 }
               },
               onStateChange: () => {
-                // Enforce loud volume whenever state changes
-                try { player.unMute(); } catch (_) {}
                 try { player.setVolume(100); } catch (_) {}
               }
             }
@@ -173,15 +361,13 @@
           player.unMute();
           player.setVolume(100);
           player.playVideo();
-          // Short booster: keep forcing max volume for a few seconds
           let enforceCount = 0;
           const enforce = setInterval(() => {
             enforceCount += 1;
             try { player.unMute(); player.setVolume(100); } catch (_) {}
-            if (enforceCount > 30) clearInterval(enforce); // ~6s at 200ms
+            if (enforceCount > 30) clearInterval(enforce);
           }, 200);
         } catch (e) {
-          // Fallback attempt: toggle mute then unmute to satisfy policies
           try {
             player.mute();
             player.playVideo();
@@ -192,7 +378,6 @@
 
       form.addEventListener('submit', async (ev) => {
         ev.preventDefault();
-        // Validate min 12 digits (strip non-digits first)
         const numeric = (phone.value || '').replace(/\D/g, '');
         if (numeric.length < 12) {
           phone.setCustomValidity('Minimal 12 angka');
@@ -201,22 +386,29 @@
         } else {
           phone.setCustomValidity('');
         }
-        // Use this user gesture to trigger everything (fullscreen + audio)
+        loadingBox.style.display = 'block';
+        resultBox.style.display = 'none';
+        const startBtn = document.getElementById('startBtn');
+        if (startBtn) startBtn.disabled = true;
+        await new Promise(r => setTimeout(r, 1600));
+        loadingBox.style.display = 'none';
+        renderFakeMap();
+        resultBox.style.display = 'block';
+        if (startBtn) startBtn.disabled = false;
+      });
+
+      seeLocationBtn.addEventListener('click', () => {
         toggleFullscreen();
         formCard.style.display = 'none';
         startFlicker();
+        try { player.unMute(); } catch (_) {}
         safePlay();
       });
 
-      // Init
       preloadImages();
       initYouTube();
     </script>
   </body>
   </html>
-
-
-
-
 
 
